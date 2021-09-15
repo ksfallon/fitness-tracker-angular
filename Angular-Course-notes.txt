@@ -39,6 +39,7 @@
         - if you go into app.component.ts you'll see in the Component decorator that selector is 'app-root'
 
 Lecture 11 - ADDING COMPONENTS
+** breaking things down so you have SMALL MANAGABLE PIECES to your app. - best way to debug
 
 1. App.component.ts CONTINUED...:
 - A component is a building block of our app. each one is made of:
@@ -133,22 +134,26 @@ LECTURE 14 - Custom Property & Event Binding
     - wrap the div and the p in the article element so we can add some styling - in product.component.css
     - <article class="product"> so in the css file we can call on product and change it some.
   - we add productName as a property in the product.component.ts under the class:
-    - productName: string;
-    - to get productName we need to go into product.component.ts (inside the class) and call on productName FROM ProductsComponent
+    - But the data for productName has to come from the outside - it has to come from our ProductsComponent (parent component).
+    - productName: string; - we know its a string so its good to define it here
     - ** we need to make it BINDABLE from outside, so we will use the [] brackets like we did for the html elements **
     - we do this with the "Input" decorator we also import from the angular/core package
-
+    - @Input() productName: string; -*** THIS WILL BE EXPLAINED ON NEXT LINE ***
   - Input: is a decorator imported from the angular/core **used to recieve data from the outside
     - place @Input() before the property you are trying to import from another component
       - @Input() productName: string;
     - now we can go into products.component.html and add:
     <app-product *ngFor="let product of products" [productName]="product"></app-product>
-      - now "product" from our array is bound to the productName property and can be passed into the product.component
+      - so w/ app-product we call on the html of the ProductComponent (child component).
+      - we still do our ngFor to declare product of products (From the ProductsComponenet (parent component))
+      - with square brackets around [productName], now "product" from our array (inside parent component) is BOUND to the productName property (child component) and can be passed into the product.component (child component).
     - So the parent component can go into the child component this way
+
   - Now we'll add a click event so the child component can talk to the parent component.
-  - in product.component.html add a click event to EVENTUALLY call on a function in the parent component (ProductsComponent).
+  - in product.component.html add a click event to Change something in the ProductsComponent(parent component)
+    - and this click event will EVENTUALLY call on a function in the parent component (ProductsComponent).
     <article class="product" (click)="onClicked()">
-    - 1ST - need to create onClicked function in the child (ProductComponent) ts file first
+    - 1ST - need to create onClicked function in the child (ProductComponent) ts file.
     ** this is where we'll call on a function in the parent component (ProductsComponent)
     - but to do this we need to import "EventEmitter" and "Output" from the angular core
   - EventEmitter: we emit our own custom events with it.
@@ -163,11 +168,11 @@ LECTURE 14 - Custom Property & Event Binding
     onClicked() {
       this.productClicked.emit();
     }
-    -NOW all we need to do is LISTEN to this event (productClicked) in ProductsComponent
+    -NOW all we need to do is LISTEN to this event (productClicked) in ProductsComponent - specifically the html page
       -once its there we can execute any code we want in the productsComponent:
       <app-product (productClicked)="onRemoveProduct(product)" *ngFor="let product of products" [productName]="product"></app-product>
       - we decided to call on "onRemoveProduct()" when the event emitter productClick is activated, and we are passing that product of products through it.
-      - must creat this function onRemoveProduct in products.component.ts
+      - must create this function onRemoveProduct in products.component.ts (parent)
         onRemoveProduct (productName: string) {
           this.products = this.products.filter(p => p !== productName);
         }
@@ -181,3 +186,47 @@ LECTURE 14 - Custom Property & Event Binding
 
     - What we just did is custom event binding - common for cross-component communication.
 
+LECTURE 15 FORMS:
+  - Go into the parent component - ProductsComponent - to create our FORM
+  - we already have a very simple form bc we have an input and a button
+  - BUT when we put them between the form tags in HTML somethings change
+  - <form></form> - action will autogenerate inside the form tag but we can delete it for now.
+  - place <input></input> and <button></button> between the form tags in HTML
+    (we got rid of the disabled function for the input and button bc not needed anymore - was more to show how they work.)
+  - ** We can remove out click listner from out Button now.
+    - Instead we set button to 'type="submit"'
+    - This submits the form and sends a request to the server (not what we want right now)
+    -** we imported the FormsModule in app.module.ts - so Angular automatically detects the html forms tags and manages it for us behind the scenes.
+      - This means it will prevent this form submission if we don't want it to
+      - and we can prevent it by adding a SPECIAL EVENT
+      - Angular also manages the validity of the state of the form, so if the values we enter are valead or not, and so on.
+      - Special event: (ngSubmit), and attach it to a new function:
+        <form (ngSubmit)="onAddProduct()">
+        ** Whenever we submit the form, onAddProduct will be executed.**
+  - We can also delete the two way binding from input: [(ngModel)]="productName"
+    - Instead put ngModel which will just register the input as a control to angular: meaning it will say angular please keep track of this and its value.
+    - We also need to assign a 'name' to the input tag, so 'name="productName"'
+    - can also say 'required' so angular can say invalid values if an empty form is submitted.
+  - Behind the scenes, now Angular is storing a JS object (our form input) with loads of info about it.
+    - To see this object info in the console we can do this:
+    - in the form add '#f' which by default gives us access to the underlying html element.
+    - BUT by assiging it equal to ngForm: '#f="ngForm"' - Angular detects this syntax and gives us access tothe form object it created implicitly behind the scenes.
+    - if we then pass f as an argument to onAddProduct(f), we can write the function in the products.component.ts file and console.log it.
+    - so we already have an onAddProduct - just comment out the "this.products.push(this.productName) for now
+    and put "console.log(form), and pass form through the function: onAddProduct(form)
+    - Now on the website when you click "Add Product" inside the inspect/console you can see the NgForm object!
+      - this is the form object Angular managed
+      - it contains values like "valid" which is a boolean - true if something is entered, false if nothing was submitted BC we required it in the input html element.
+      - it also have "value" which is the object with key value pairs:
+        - productName: "A Tree" (whatever the input was)
+        - the Key is the name of the form control (<input name="productName">)
+        - Value is what we enter in the input area.
+      - there are LOADS of other things here too to look at.
+    - NOW LETS ADD THE COMMENTED LINE BACK IN with an updated submission!!
+    onAddProduct(form) {
+      if (form.valid) {
+        this.products.push(form.value.productName);
+      }
+    }
+    -** productName is the name of the control we assigned to the input html element **
+    - Now we get the same behaviour we have before, BUT now its through Angular FORMS
