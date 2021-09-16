@@ -230,3 +230,102 @@ LECTURE 15 FORMS:
     }
     -** productName is the name of the control we assigned to the input html element **
     - Now we get the same behaviour we have before, BUT now its through Angular FORMS
+
+LECTURE - Understanding Services & Dependency Injections
+
+Services - are typescript classes that can be reached from any component.
+  - This is B/C they can be INJECTED into any component and even into other services.
+  - Its a TS Class so at the top of the function we:
+  export class ProductsService {}
+  - it holds functionality that you typically want to be able to share across multiple components.
+    - this could be: data you want to use from other components, it could be utility functions like logging something or sending HTTP requests.
+    1st. we'll create our products array: "private products = ['A Book']"
+    2nd. We'll add two methods: addProducts and getProducts
+      - addProducts will pass productName which is a string and it will push this product name into this.products
+        addProducts(productName: string) {
+          this.products.push(productName);
+        }
+      -getProducts will return the products array and use the spread operator (...) to pull out all of the old elements from this.products and add them as new elements to this new array.
+        getProducts() {
+          return [...this.products]
+        }
+        - if returned without the (...) we would just be pointing to the class above, NOT the additional information we've added from the user face. It also means we won't be changing the 'private products = ['A Book'] array wthin the class.
+    3rd. Now that its setup - lets use it to create new products, which means it must be INJECTED somewhere.
+    ** TO INJECT ProductsService INTO ProductsComponent
+    - import ProductsService at the top of ProductsComponent
+    - go the ProductsComponent's CONSTRUCTOR and PASS -> productsService: ProductsService through the parentheses.
+      - it will be recognized by the constructor b/c we've already imported it.
+    - ** These two things tell Angular that: it needs the productsService argument with the type -> ProductsComponent - so angular will try to give me an instance of this type.
+    BUT for it to know how to do this, we must add something to the AppModule
+    - first import the ProductsService at the top of AppModule
+    - then in the providers array in the @NgModule object, we need to put anything that we want to inject anywhere in the app.
+      - in providers array now we can put [ProductsService].
+    NOW Angular can resolve this dependency and create a new instance of it and provide it in the constructor function of ProductsComponent.
+    - If you run it rhough the constructor as "private productsService: ProductsService" it will not only be received as an arguement, but automatically bind it to a class property.
+    - now in the onAddProduct function of ProductsComponent, instead of pushing to a local array we can adjust the function to bind is to the ProductsService 'addProduct' and push form.value.productName to ProductsService products array.
+      onAddProduct(form) {
+        if (form.valid) {
+          this.productsService.addProduct(form.value.productName)
+        }
+      }
+    - Now the products that are held are being stored in a more 'global' array.
+    - We want to be able to use this more global array of products now too (this example isnt best practuce but gives the basic idea)
+      - inside the constructor, set this.products = this.productsService.getProducts()
+      - and the products variable (in ProductsComponent) set it equal to an empty array.
+    - BUT THE BEST PLACE FOR THIS IS THE ONINIT (OnInit).
+    - OnInit has to be imported at the top (still in ProductsComponent)
+    - in the export class line after ProductsComponent add: "implements OnInit"
+    - AND add a new method called: ngOnInit () - it runs it once its created the component AND after its run the constructor.
+      - its very good practice to do anything but very trivial intializations inside NgOnInit.
+      - *** MOVE this.products = this.productsService.getProducts() from the constructor to NgOnInit. ****
+  -But now we realize the products are only being fetched ONE TIME, so it is not updating when a new item is added.
+    - Go BACK to products.Services - so we can set up a SUBSCRIPTION to get informed about CHANGES.
+    - Import: Subject from RjSX - its like an event emitter
+    - 1st - create a new property in the service that is equal to a new Subject:
+      productsUpdated = new Subject();
+      - I want to emit an event through that Subject whenever the products array changes.
+    - 2nd - in addProduct include: this.productsUpdated.next().
+      - next is what calls the emit here, we can pass data with it too if we want too:
+      this.productsUpdated.next(this.products) - but its unnecessary bc empty it'll trigger a new fetch.
+    3rd - GO BACK TO ProductsComponent:
+     - inside ngOnInit include: this.productsService.productsUpdated.subscribe().
+      - ** this addition will now keep us informed about changes.
+      - we just need to add the code we want it to run everytime to get the updates, which is the same as the first line of the ngOnInit!
+      - we pass a function through subscribe where we get the value that was emitted, and then we define that code that should be executed whenever this triggers
+        this.productsService.productsUpdated.subscribe(() => {
+          this.products = this.productsService.getProducts();
+        })
+        - so now everytime the products change, this will run again.
+    4th - go back to the top to IMPORT SUBSCRIPTION from rxjs.
+      - Store Subscription in a property: private productsSubscription: Subscription
+        (its TYPE is Subscription - remember you are using TypeScript, so include the TYPES)
+      - Now that this productsSubscription and set our new ngOnInit function to it - it STORES it in the Subscription:
+        this.productsSubscription = this.productsService.productsUpdated.subscribe(() => {
+          this.products = this.productsService.getProducts();
+        })
+      ** the SUBSCRIBE method returns a new Subscription which is STORED in the productsSubscription
+    5th - It is good practice to Destroy something that isn't used
+    - import OnDestroy in the brackets from angular/core.
+    - next to 'OnIt' on class ProductsComponent line put 'OnDestroy'
+    - now can add a new method in the class called 'ngOnDestroy' which runs when its torn down.
+      - so you need to reach out to your subscription and UNSUBSCRIBE.
+      ngOnDestroy () {
+        this.productsSubscription.unsubscribe();
+      }
+      - this clears up the resources and prevents memory leaks.
+  Now we want to INJECT ProductsService into another component - ProductComponent
+    AGAIN WE MUST (in product.component.ts):
+     1. Import the productsService,
+     2. set it as a variable and define the type,
+     3. then run private productsService: ProductsService through the constructor
+    In the onClicked function now we can reach out to the productsService and call "deleteProduct()" method there.
+    - and pass this.productName so we know which one to delete.
+      onClicked() {
+        this.productsService.deleteProduct(this.productName)
+      }
+    - NOW we need to CREATE deleteProduct in our products.Service.ts
+    - deleteProduct is inside our class
+    - pass productName: string through the function because we need to know which one we are deleting.
+    - this.products = this.products.fiter(p => p!== productName) because this gives us a new array WITHOUT the deleted productName
+    - ALSO - this.productsUpdated(next) - this will trigger our SUBSCRIPTION with the 'next()' call so that our array of products is updated everytime something is deleted.
+
