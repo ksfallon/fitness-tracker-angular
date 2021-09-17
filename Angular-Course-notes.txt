@@ -381,3 +381,20 @@ LECTURE 17 - Angular Routing
       <a routerLink="/">Home</a> - these point to the path where we want to go.
       <a routerLink="/products">Products</a>
       <router-outlet></router-outlet>
+
+Lecture 20 - Angular Material.
+- A third part package for Angular
+- An Angular Component Suite - a pre-built and Styled components
+  - These components follow the Material design spec which was created by google.
+  - This is so we can import buttons, tabs, dropdowns, etc so we don't have to create them totally on our own - can still change bits about their style in CSS.
+- its almost like two packages:
+1. Component Building Utilities
+  - bundled in a package called angular/cdk (component development kit) and this does NOT INCUDE:
+    -Angular Material Stlying, concrete component implementation.
+    - instead it has alot of utility and helper methods and classes such as:
+      - for rendering overlays, positioning elements, and some raw, unstyled components like a DATA TABLE - which is very complex behind the scenes.
+2. Concrete Component Implementations (using Material Design Spec)
+  - this is the one with all the angular Material components which are prestyled AND behind the scenes build up from/off of the cdk package.
+
+Lecture 20 - Angular Material
+- https://material.angular.io/ - has the CDK link where you can explore more and learn more about the features.
